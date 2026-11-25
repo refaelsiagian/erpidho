@@ -7,4 +7,3 @@ enum StatusPenerimaan: string
     case Dipesan = 'Dipesan';
     case Diterima = 'Diterima';
 }
-

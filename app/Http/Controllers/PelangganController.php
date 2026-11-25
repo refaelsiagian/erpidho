@@ -94,4 +94,3 @@ class PelangganController extends Controller
         ]);
     }
 }
-

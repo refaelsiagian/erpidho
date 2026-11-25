@@ -9,4 +9,3 @@ enum SatuanMaterial: string
     case Sak = 'Sak';
     case Kotak = 'Kotak';
 }
-

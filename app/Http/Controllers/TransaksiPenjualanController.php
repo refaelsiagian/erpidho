@@ -67,10 +67,14 @@ class TransaksiPenjualanController extends Controller
             'alamat_baru' => ['nullable', 'string', 'max:150'],
             'metode_bayar' => ['required', Rule::enum(MetodeBayar::class)],
             'status_pembayaran' => ['required', Rule::enum(StatusPembayaran::class)],
+            'tanggal_lunas' => ['nullable', 'date', 'before_or_equal:today'],
+            'perlu_pengiriman' => ['nullable', 'boolean'],
+            'biaya_pengiriman' => ['nullable', 'integer', 'min:0'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.material_id' => ['required', 'integer', 'exists:materials,id'],
             'items.*.jumlah' => ['required', 'integer', 'min:1'],
         ], [
+            'tanggal_lunas.before_or_equal' => 'Tanggal lunas tidak boleh melebihi hari ini.',
             'items.required' => 'Pilih minimal satu material untuk transaksi.',
             'items.min' => 'Pilih minimal satu material untuk transaksi.',
         ]);
@@ -89,17 +93,23 @@ class TransaksiPenjualanController extends Controller
             ], $validated['items']);
 
             $preparedItems = $this->stokService->deductMaterials($lineItems);
-            $totalBayar = collect($preparedItems)->sum('subtotal');
+            $perluPengiriman = $request->boolean('perlu_pengiriman');
+            $biayaPengiriman = $perluPengiriman ? (int) ($validated['biaya_pengiriman'] ?? 0) : 0;
+            $totalBayar = collect($preparedItems)->sum('subtotal') + $biayaPengiriman;
+
+            $isLunas = $validated['status_pembayaran'] === StatusPembayaran::Lunas->value;
 
             $transaksi = TransaksiPenjualan::create([
                 'kode_transaksi' => CodeGenerator::next(TransaksiPenjualan::class, 'kode_transaksi', 'TRX', 6),
                 'pelanggan_id' => $pelangganId,
                 'user_id' => $request->user()->id,
                 'tanggal' => now(),
-                'biaya_pengiriman' => 0,
+                'perlu_pengiriman' => $perluPengiriman,
+                'biaya_pengiriman' => $biayaPengiriman,
                 'total_bayar' => $totalBayar,
                 'metode_bayar' => $validated['metode_bayar'],
                 'status_pembayaran' => $validated['status_pembayaran'],
+                'tanggal_lunas' => $isLunas ? ($validated['tanggal_lunas'] ?? now()->toDateString()) : null,
             ]);
 
             foreach ($preparedItems as $item) {
@@ -133,9 +143,27 @@ class TransaksiPenjualanController extends Controller
     {
         $validated = $request->validate([
             'status_pembayaran' => ['required', Rule::enum(StatusPembayaran::class)],
+            'tanggal_lunas' => ['nullable', 'date', 'before_or_equal:today'],
+        ], [
+            'tanggal_lunas.before_or_equal' => 'Tanggal lunas tidak boleh melebihi hari ini.',
         ]);
 
-        $penjualan->update($validated);
+        $newStatus = StatusPembayaran::from($validated['status_pembayaran']);
+
+        if (
+            $penjualan->status_pembayaran === StatusPembayaran::Lunas
+            && $newStatus === StatusPembayaran::BelumLunas
+            && ! $request->user()->isPemilik()
+        ) {
+            abort(403, 'Hanya Pemilik yang berwenang mengembalikan status Lunas menjadi Belum Lunas.');
+        }
+
+        $penjualan->update([
+            'status_pembayaran' => $newStatus,
+            'tanggal_lunas' => $newStatus === StatusPembayaran::Lunas
+                ? ($validated['tanggal_lunas'] ?? now()->toDateString())
+                : null,
+        ]);
 
         return back()->with('success', 'Status pembayaran transaksi berhasil diperbarui.');
     }
@@ -151,4 +179,3 @@ class TransaksiPenjualanController extends Controller
         return $pdf->download("nota-penjualan-{$penjualan->kode_transaksi}.pdf");
     }
 }
-

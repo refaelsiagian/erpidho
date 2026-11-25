@@ -3,12 +3,14 @@
         'id' => $t->id,
         'label' => "{$t->kode_transaksi} — " . ($t->pelanggan?->nama_pelanggan ?? 'Pelanggan Umum'),
         'alamat' => $t->pelanggan?->alamat ?? '',
+        'biaya' => $t->biaya_pengiriman,
     ])->values();
 
     $boronganList = $borongans->map(fn ($b) => [
         'id' => $b->id,
         'label' => "{$b->kode_borongan} — {$b->pelanggan->nama_pelanggan}",
         'alamat' => $b->lokasi_proyek,
+        'biaya' => $b->biaya_pengiriman,
     ])->values();
 @endphp
 
@@ -19,14 +21,19 @@
             jenis: '{{ old('jenis_referensi', $preselectType ?: 'borongan') }}',
             referensiId: '{{ old('referensi_id', $preselectId ?: '') }}',
             alamat: '{{ old('alamat_pengiriman', '') }}',
+            tanggalKirim: '{{ old('tanggal_kirim', now()->addDay()->toDateString()) }}',
             penjualans: @js($penjualanList),
             borongans: @js($boronganList),
             get options() { return this.jenis === 'penjualan' ? this.penjualans : this.borongans; },
+            get selectedOrder() { return this.options.find(o => o.id == this.referensiId); },
             syncAlamat() {
-                const found = this.options.find(o => o.id == this.referensiId);
+                const found = this.selectedOrder;
                 if (found && found.alamat && !this.alamat) {
                     this.alamat = found.alamat;
                 }
+            },
+            rupiah(val) {
+                return 'Rp ' + new Intl.NumberFormat('id-ID').format(val || 0);
             }
         }"
         x-init="syncAlamat()"
@@ -61,23 +68,24 @@
                 </div>
             </div>
 
+            <div x-show="selectedOrder" x-cloak class="rounded-xl bg-slate-50 border border-slate-200 px-3.5 py-2.5 text-xs text-slate-600 flex items-center justify-between">
+                <span>Biaya pengiriman tercatat pada pesanan (sudah masuk total nota):</span>
+                <span class="font-bold text-slate-900" x-text="rupiah(selectedOrder?.biaya)"></span>
+            </div>
+
             <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">Alamat Pengiriman</label>
                 <input type="text" name="alamat_pengiriman" x-model="alamat" required maxlength="150" placeholder="Alamat tujuan pengiriman" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Kirim</label>
-                    <input type="date" name="tanggal_kirim" value="{{ old('tanggal_kirim', now()->addDay()->toDateString()) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                    <input type="date" name="tanggal_kirim" x-model="tanggalKirim" min="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Jam Kirim</label>
-                    <input type="time" name="jam_kirim" value="{{ old('jam_kirim', '09:00') }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Biaya Pengiriman (Rp)</label>
-                    <input type="number" name="biaya_pengiriman" min="0" value="{{ old('biaya_pengiriman', 0) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                    <input type="time" name="jam_kirim" value="{{ old('jam_kirim', '09:00') }}" :min="tanggalKirim === '{{ now()->toDateString() }}' ? '{{ now()->format('H:i') }}' : null" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
             </div>
 
@@ -95,4 +103,3 @@
         </form>
     </div>
 </x-app-layout>
-

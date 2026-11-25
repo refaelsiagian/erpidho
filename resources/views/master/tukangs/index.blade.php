@@ -30,7 +30,15 @@
                             </td>
                             <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                 <a href="{{ route('tukangs.edit', $t) }}" class="text-amber-600 hover:text-amber-700 font-medium">Ubah</a>
-                                <form method="POST" action="{{ route('tukangs.destroy', $t) }}" class="inline" onsubmit="return confirm('Hapus karyawan tukang ini?')">
+                                <form
+                                    method="POST"
+                                    action="{{ route('tukangs.destroy', $t) }}"
+                                    class="inline"
+                                    data-confirm="Hapus karyawan tukang {{ $t->nama_tukang }}?"
+                                    data-confirm-title="Hapus Karyawan Tukang"
+                                    data-confirm-button="Ya, Hapus"
+                                    data-confirm-variant="danger"
+                                >
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="text-rose-600 hover:text-rose-700 font-medium cursor-pointer">Hapus</button>

@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Enums\MetodeBayar;
+use App\Enums\StatusPembayaran;
 use App\Enums\StatusProyek;
 use App\Models\Pelanggan;
 use App\Models\PesananBorongan;
@@ -30,8 +32,19 @@ class PesananBoronganFactory extends Factory
             'biaya_jasa' => $biayaJasa,
             'biaya_pengiriman' => 0,
             'total_biaya' => $biayaJasa,
+            'metode_bayar' => MetodeBayar::Tunai,
+            'status_pembayaran' => StatusPembayaran::BelumLunas,
+            'tanggal_lunas' => null,
             'status_proyek' => StatusProyek::Menunggu,
         ];
+    }
+
+    public function lunas(?string $tanggalLunas = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status_pembayaran' => StatusPembayaran::Lunas,
+            'tanggal_lunas' => $tanggalLunas ?? now()->toDateString(),
+        ]);
     }
 
     public function selesai(): static

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\StatusBayarGaji;
+use App\Enums\StatusPembayaran;
 use App\Enums\StatusPenerimaan;
 use App\Models\Material;
 use App\Models\Pengadaan;
@@ -40,30 +42,38 @@ class LaporanController extends Controller
 
         $penjualans = TransaksiPenjualan::query()
             ->with('pelanggan')
-            ->whereDate('tanggal', '>=', $dari)
-            ->whereDate('tanggal', '<=', $sampai)
-            ->orderByDesc('tanggal')
+            ->where('status_pembayaran', StatusPembayaran::Lunas)
+            ->whereNotNull('tanggal_lunas')
+            ->whereDate('tanggal_lunas', '>=', $dari)
+            ->whereDate('tanggal_lunas', '<=', $sampai)
+            ->orderByDesc('tanggal_lunas')
             ->get();
 
         $borongans = PesananBorongan::query()
             ->with('pelanggan')
-            ->whereDate('tanggal_mulai', '>=', $dari)
-            ->whereDate('tanggal_mulai', '<=', $sampai)
-            ->orderByDesc('tanggal_mulai')
+            ->where('status_pembayaran', StatusPembayaran::Lunas)
+            ->whereNotNull('tanggal_lunas')
+            ->whereDate('tanggal_lunas', '>=', $dari)
+            ->whereDate('tanggal_lunas', '<=', $sampai)
+            ->orderByDesc('tanggal_lunas')
             ->get();
 
         $pengadaans = Pengadaan::query()
             ->with('supplier')
-            ->whereDate('tanggal_pesan', '>=', $dari)
-            ->whereDate('tanggal_pesan', '<=', $sampai)
-            ->orderByDesc('tanggal_pesan')
+            ->where('status_penerimaan', StatusPenerimaan::Diterima)
+            ->whereNotNull('tanggal_terima')
+            ->whereDate('tanggal_terima', '>=', $dari)
+            ->whereDate('tanggal_terima', '<=', $sampai)
+            ->orderByDesc('tanggal_terima')
             ->get();
 
         $penggajians = PenggajianTukang::query()
             ->with(['karyawanTukang', 'pesananBorongan'])
-            ->whereDate('tanggal_diproses', '>=', $dari)
-            ->whereDate('tanggal_diproses', '<=', $sampai)
-            ->orderByDesc('tanggal_diproses')
+            ->where('status_bayar', StatusBayarGaji::Dibayar)
+            ->whereNotNull('tanggal_dibayar')
+            ->whereDate('tanggal_dibayar', '>=', $dari)
+            ->whereDate('tanggal_dibayar', '<=', $sampai)
+            ->orderByDesc('tanggal_dibayar')
             ->get();
 
         $materials = Material::query()
@@ -74,12 +84,23 @@ class LaporanController extends Controller
         $totalBorongan = (int) $borongans->sum('total_biaya');
         $totalOmzet = $totalPenjualanLangsung + $totalBorongan;
 
-        $totalPengadaan = (int) $pengadaans
-            ->where('status_penerimaan', StatusPenerimaan::Diterima)
-            ->sum('total_pengadaan');
+        $totalPiutangBelumLunas = (int) TransaksiPenjualan::query()
+            ->where('status_pembayaran', StatusPembayaran::BelumLunas)
+            ->sum('total_bayar')
+            + (int) PesananBorongan::query()
+                ->where('status_pembayaran', StatusPembayaran::BelumLunas)
+                ->sum('total_biaya');
 
-        $totalPengadaanSemua = (int) $pengadaans->sum('total_pengadaan');
+        $totalPengadaan = (int) $pengadaans->sum('total_pengadaan');
+
+        $totalPengadaanSemua = (int) Pengadaan::query()
+            ->whereDate('tanggal_pesan', '>=', $dari)
+            ->whereDate('tanggal_pesan', '<=', $sampai)
+            ->sum('total_pengadaan');
         $totalGajiTukang = (int) $penggajians->sum('total_gaji');
+        $totalGajiBelumDibayar = (int) PenggajianTukang::query()
+            ->where('status_bayar', StatusBayarGaji::BelumDibayar)
+            ->sum('total_gaji');
 
         return [
             'dari' => $dari,
@@ -92,10 +113,11 @@ class LaporanController extends Controller
             'totalPenjualanLangsung' => $totalPenjualanLangsung,
             'totalBorongan' => $totalBorongan,
             'totalOmzet' => $totalOmzet,
+            'totalPiutangBelumLunas' => $totalPiutangBelumLunas,
             'totalPengadaan' => $totalPengadaan,
             'totalPengadaanSemua' => $totalPengadaanSemua,
             'totalGajiTukang' => $totalGajiTukang,
+            'totalGajiBelumDibayar' => $totalGajiBelumDibayar,
         ];
     }
 }
-

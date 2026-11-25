@@ -97,4 +97,3 @@ class KaryawanTukangController extends Controller
         ]);
     }
 }
-

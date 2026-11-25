@@ -20,9 +20,10 @@
     {{-- Summary metrics --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <p class="text-xs font-medium text-slate-500 uppercase">Total Omzet Penjualan</p>
+            <p class="text-xs font-medium text-slate-500 uppercase">Pemasukan Lunas</p>
             <p class="mt-2 text-xl font-bold text-slate-900">{{ \App\Support\Rupiah::format($totalOmzet) }}</p>
             <p class="mt-1 text-xs text-slate-500">Langsung: {{ \App\Support\Rupiah::format($totalPenjualanLangsung) }} · Borongan: {{ \App\Support\Rupiah::format($totalBorongan) }}</p>
+            <p class="mt-1 text-[11px] text-amber-700">Piutang belum lunas: {{ \App\Support\Rupiah::format($totalPiutangBelumLunas) }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
             <p class="text-xs font-medium text-slate-500 uppercase">Pengadaan Diterima</p>
@@ -30,9 +31,9 @@
             <p class="mt-1 text-xs text-slate-500">Total dipesan (semua): {{ \App\Support\Rupiah::format($totalPengadaanSemua) }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
-            <p class="text-xs font-medium text-slate-500 uppercase">Pengeluaran Gaji Tukang</p>
+            <p class="text-xs font-medium text-slate-500 uppercase">Pengeluaran Gaji Tukang (Dibayar)</p>
             <p class="mt-2 text-xl font-bold text-slate-900">{{ \App\Support\Rupiah::format($totalGajiTukang) }}</p>
-            <p class="mt-1 text-xs text-slate-500">{{ $penggajians->count() }} slip gaji diproses</p>
+            <p class="mt-1 text-xs text-slate-500">{{ $penggajians->count() }} slip dibayar · Belum dibayar: {{ \App\Support\Rupiah::format($totalGajiBelumDibayar) }}</p>
         </div>
         <div class="bg-white rounded-2xl border border-slate-200 p-5">
             <p class="text-xs font-medium text-slate-500 uppercase">Material Stok Kritis</p>
@@ -43,14 +44,14 @@
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section class="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <div class="px-5 py-3.5 border-b border-slate-100 font-bold text-slate-900 text-sm">Rekap Penjualan &amp; Borongan</div>
+            <div class="px-5 py-3.5 border-b border-slate-100 font-bold text-slate-900 text-sm">Rekap Penjualan &amp; Borongan Lunas</div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-100 text-xs">
                     <thead class="bg-slate-50 text-left font-semibold text-slate-500 uppercase">
                         <tr>
                             <th class="px-4 py-2.5">Kode</th>
                             <th class="px-4 py-2.5">Pelanggan</th>
-                            <th class="px-4 py-2.5">Tanggal</th>
+                            <th class="px-4 py-2.5">Tanggal Lunas</th>
                             <th class="px-4 py-2.5 text-right">Nominal</th>
                         </tr>
                     </thead>
@@ -59,7 +60,7 @@
                             <tr>
                                 <td class="px-4 py-2 font-mono">{{ $t->kode_transaksi }}</td>
                                 <td class="px-4 py-2">{{ $t->pelanggan?->nama_pelanggan ?? 'Umum' }}</td>
-                                <td class="px-4 py-2">{{ $t->tanggal->format('d/m/Y') }}</td>
+                                <td class="px-4 py-2">{{ $t->tanggal_lunas?->format('d/m/Y') }}</td>
                                 <td class="px-4 py-2 text-right font-semibold">{{ \App\Support\Rupiah::format($t->total_bayar) }}</td>
                             </tr>
                         @endforeach
@@ -67,12 +68,12 @@
                             <tr>
                                 <td class="px-4 py-2 font-mono">{{ $b->kode_borongan }}</td>
                                 <td class="px-4 py-2">{{ $b->pelanggan->nama_pelanggan }}</td>
-                                <td class="px-4 py-2">{{ $b->tanggal_mulai->format('d/m/Y') }}</td>
+                                <td class="px-4 py-2">{{ $b->tanggal_lunas?->format('d/m/Y') }}</td>
                                 <td class="px-4 py-2 text-right font-semibold">{{ \App\Support\Rupiah::format($b->total_biaya) }}</td>
                             </tr>
                         @endforeach
                         @if ($penjualans->isEmpty() && $borongans->isEmpty())
-                            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Tidak ada transaksi pada periode ini.</td></tr>
+                            <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">Tidak ada transaksi lunas pada periode ini.</td></tr>
                         @endif
                     </tbody>
                 </table>

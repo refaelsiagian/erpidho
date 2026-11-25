@@ -27,7 +27,15 @@
                             <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                 <a href="{{ route('pengguna.edit', $u) }}" class="text-amber-600 hover:text-amber-700 font-medium">Ubah</a>
                                 @if (! auth()->user()->is($u))
-                                    <form method="POST" action="{{ route('pengguna.destroy', $u) }}" class="inline" onsubmit="return confirm('Hapus pengguna ini?')">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('pengguna.destroy', $u) }}"
+                                        class="inline"
+                                        data-confirm="Hapus pengguna {{ $u->nama_lengkap }}?"
+                                        data-confirm-title="Hapus Pengguna"
+                                        data-confirm-button="Ya, Hapus"
+                                        data-confirm-variant="danger"
+                                    >
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-rose-600 hover:text-rose-700 font-medium cursor-pointer">Hapus</button>

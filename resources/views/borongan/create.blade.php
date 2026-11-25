@@ -13,8 +13,11 @@
         x-data="{
             materials: @js($materialsJson),
             modePelanggan: '{{ old('nama_pelanggan_baru') ? 'baru' : 'pilih' }}',
+            statusPembayaran: '{{ old('status_pembayaran', 'Belum Lunas') }}',
+            tanggalMulai: '{{ old('tanggal_mulai', now()->toDateString()) }}',
             biayaJasa: {{ (int) old('biaya_jasa', 0) }},
-            items: [{ material_id: '', jumlah_material: 1 }],
+            biayaPengiriman: {{ (int) old('biaya_pengiriman', 0) }},
+            items: @js(array_values(old('items', [['material_id' => '', 'jumlah_material' => 1]]))),
             addItem() { this.items.push({ material_id: '', jumlah_material: 1 }); },
             removeItem(i) { if (this.items.length > 1) this.items.splice(i, 1); },
             getMaterial(id) { return this.materials.find(m => m.id == id); },
@@ -26,7 +29,7 @@
                 return this.items.reduce((sum, item) => sum + this.lineSubtotal(item), 0);
             },
             grandTotal() {
-                return this.materialTotal() + (parseInt(this.biayaJasa) || 0);
+                return this.materialTotal() + (parseInt(this.biayaJasa) || 0) + (parseInt(this.biayaPengiriman) || 0);
             },
             rupiah(val) {
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(val || 0);
@@ -64,22 +67,49 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Mulai</label>
-                    <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai', now()->toDateString()) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                    <input type="date" name="tanggal_mulai" x-model="tanggalMulai" min="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Target Selesai</label>
-                    <input type="date" name="tanggal_target" value="{{ old('tanggal_target', now()->addDays(5)->toDateString()) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                    <input type="date" name="tanggal_target" value="{{ old('tanggal_target', now()->addDays(5)->toDateString()) }}" :min="tanggalMulai" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Lokasi Proyek</label>
                     <input type="text" name="lokasi_proyek" value="{{ old('lokasi_proyek') }}" required maxlength="150" placeholder="Alamat lengkap lokasi pemasangan" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-slate-700 mb-1">Biaya Jasa Pemasangan (Rp - Diisi Manual)</label>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Biaya Jasa Pemasangan (Rp)</label>
                     <input type="number" name="biaya_jasa" x-model="biayaJasa" min="0" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Biaya Pengiriman (Rp)</label>
+                    <input type="number" name="biaya_pengiriman" x-model="biayaPengiriman" min="0" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Metode Pembayaran</label>
+                    <select name="metode_bayar" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                        @foreach ($metodeBayars as $m)
+                            <option value="{{ $m->value }}" @selected(old('metode_bayar', 'Tunai') === $m->value)>{{ $m->value }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Status Pembayaran</label>
+                    <select name="status_pembayaran" x-model="statusPembayaran" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
+                        @foreach ($statusPembayarans as $s)
+                            <option value="{{ $s->value }}">{{ $s->value }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div x-show="statusPembayaran === 'Lunas'" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Lunas</label>
+                    <input type="date" name="tanggal_lunas" value="{{ old('tanggal_lunas', now()->toDateString()) }}" max="{{ now()->toDateString() }}" :disabled="statusPembayaran !== 'Lunas'" class="w-full rounded-xl border border-slate-300 px-3.5 py-2 text-sm">
                 </div>
             </div>
 
@@ -96,7 +126,7 @@
                                 <select :name="`items[${index}][material_id]`" x-model="item.material_id" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                                     <option value="">-- Pilih Material --</option>
                                     <template x-for="mat in materials" :key="mat.id">
-                                        <option :value="mat.id" x-text="mat.label"></option>
+                                        <option :value="mat.id" :selected="mat.id == item.material_id" x-text="mat.label"></option>
                                     </template>
                                 </select>
                             </div>
@@ -114,7 +144,7 @@
 
             <div class="rounded-2xl bg-slate-900 text-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <p class="text-xs text-slate-400">Material: <span x-text="rupiah(materialTotal())"></span> + Jasa: <span x-text="rupiah(biayaJasa)"></span></p>
+                    <p class="text-xs text-slate-400">Material: <span x-text="rupiah(materialTotal())"></span> + Jasa: <span x-text="rupiah(biayaJasa)"></span> + Pengiriman: <span x-text="rupiah(biayaPengiriman)"></span></p>
                     <p class="text-2xl font-bold text-amber-400" x-text="rupiah(grandTotal())"></p>
                 </div>
                 <div class="flex items-center gap-3">

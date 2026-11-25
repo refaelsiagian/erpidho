@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\StatusBayarGaji;
+use App\Enums\StatusPembayaran;
 use App\Enums\StatusPenerimaan;
 use App\Enums\StatusPengiriman;
 use App\Enums\StatusProyek;
@@ -21,12 +22,21 @@ class DashboardController extends Controller
         $today = now()->toDateString();
 
         $penjualanHariIni = (int) TransaksiPenjualan::query()
-            ->whereDate('tanggal', $today)
+            ->where('status_pembayaran', StatusPembayaran::Lunas)
+            ->whereDate('tanggal_lunas', $today)
             ->sum('total_bayar');
 
         $boronganHariIni = (int) PesananBorongan::query()
-            ->whereDate('tanggal_mulai', $today)
+            ->where('status_pembayaran', StatusPembayaran::Lunas)
+            ->whereDate('tanggal_lunas', $today)
             ->sum('total_biaya');
+
+        $piutangBelumLunas = (int) TransaksiPenjualan::query()
+            ->where('status_pembayaran', StatusPembayaran::BelumLunas)
+            ->sum('total_bayar')
+            + (int) PesananBorongan::query()
+                ->where('status_pembayaran', StatusPembayaran::BelumLunas)
+                ->sum('total_biaya');
 
         $stokKritisMaterials = Material::query()
             ->stokKritis()
@@ -63,6 +73,7 @@ class DashboardController extends Controller
             'omzetHariIni' => $penjualanHariIni + $boronganHariIni,
             'penjualanHariIni' => $penjualanHariIni,
             'boronganHariIni' => $boronganHariIni,
+            'piutangBelumLunas' => $piutangBelumLunas,
             'stokKritisMaterials' => $stokKritisMaterials,
             'jadwalMendatang' => $jadwalMendatang,
             'boronganAktifCount' => $boronganAktifCount,
@@ -72,4 +83,3 @@ class DashboardController extends Controller
         ]);
     }
 }
-

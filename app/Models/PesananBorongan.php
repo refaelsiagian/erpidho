@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\MetodeBayar;
+use App\Enums\StatusPembayaran;
 use App\Enums\StatusProyek;
 use Database\Factories\PesananBoronganFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +30,9 @@ class PesananBorongan extends Model
         'biaya_jasa',
         'biaya_pengiriman',
         'total_biaya',
+        'metode_bayar',
+        'status_pembayaran',
+        'tanggal_lunas',
         'status_proyek',
     ];
 
@@ -42,8 +47,16 @@ class PesananBorongan extends Model
             'biaya_jasa' => 'integer',
             'biaya_pengiriman' => 'integer',
             'total_biaya' => 'integer',
+            'metode_bayar' => MetodeBayar::class,
+            'status_pembayaran' => StatusPembayaran::class,
+            'tanggal_lunas' => 'date',
             'status_proyek' => StatusProyek::class,
         ];
+    }
+
+    public function isLunas(): bool
+    {
+        return $this->status_pembayaran === StatusPembayaran::Lunas;
     }
 
     public function pelanggan(): BelongsTo

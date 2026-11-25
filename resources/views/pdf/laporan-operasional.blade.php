@@ -13,24 +13,32 @@
         </thead>
         <tbody>
             <tr>
-                <td>Penjualan Langsung ({{ $penjualans->count() }} transaksi)</td>
+                <td>Penjualan Langsung Lunas ({{ $penjualans->count() }} transaksi)</td>
                 <td class="right">{{ \App\Support\Rupiah::format($totalPenjualanLangsung) }}</td>
             </tr>
             <tr>
-                <td>Pesanan Borongan ({{ $borongans->count() }} proyek)</td>
+                <td>Pesanan Borongan Lunas ({{ $borongans->count() }} proyek)</td>
                 <td class="right">{{ \App\Support\Rupiah::format($totalBorongan) }}</td>
             </tr>
             <tr class="total-row">
-                <td>Total Omzet Periode</td>
+                <td>Total Pemasukan Lunas Periode</td>
                 <td class="right">{{ \App\Support\Rupiah::format($totalOmzet) }}</td>
+            </tr>
+            <tr>
+                <td>Piutang Pelanggan Belum Lunas (Saat Ini)</td>
+                <td class="right">{{ \App\Support\Rupiah::format($totalPiutangBelumLunas) }}</td>
             </tr>
             <tr>
                 <td>Pengeluaran Pengadaan Bahan (Diterima)</td>
                 <td class="right">{{ \App\Support\Rupiah::format($totalPengadaan) }}</td>
             </tr>
             <tr>
-                <td>Pengeluaran Gaji Tukang ({{ $penggajians->count() }} slip)</td>
+                <td>Pengeluaran Gaji Tukang Dibayar ({{ $penggajians->count() }} slip)</td>
                 <td class="right">{{ \App\Support\Rupiah::format($totalGajiTukang) }}</td>
+            </tr>
+            <tr>
+                <td>Kewajiban Gaji Belum Dibayar (Saat Ini)</td>
+                <td class="right">{{ \App\Support\Rupiah::format($totalGajiBelumDibayar) }}</td>
             </tr>
         </tbody>
     </table>

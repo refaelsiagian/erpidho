@@ -8,4 +8,3 @@ enum StatusPengiriman: string
     case Dikirim = 'Dikirim';
     case Selesai = 'Selesai';
 }
-

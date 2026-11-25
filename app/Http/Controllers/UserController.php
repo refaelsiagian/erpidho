@@ -102,4 +102,3 @@ class UserController extends Controller
             ->with('success', 'Pengguna berhasil dihapus.');
     }
 }
-

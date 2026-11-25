@@ -14,7 +14,11 @@
             <td style="width: 45%;">
                 <strong>Pelanggan:</strong> {{ $borongan->pelanggan->nama_pelanggan }}<br>
                 <strong>No. Telepon:</strong> {{ $borongan->pelanggan->no_telepon ?? '-' }}<br>
-                <strong>Lokasi Proyek:</strong> {{ $borongan->lokasi_proyek }}
+                <strong>Lokasi Proyek:</strong> {{ $borongan->lokasi_proyek }}<br>
+                <strong>Pembayaran:</strong> {{ $borongan->status_pembayaran->value }} ({{ $borongan->metode_bayar->value }})
+                @if ($borongan->tanggal_lunas)
+                    — {{ $borongan->tanggal_lunas->format('d M Y') }}
+                @endif
             </td>
         </tr>
     </table>

@@ -48,6 +48,7 @@ Route::middleware('auth')->group(function (): void {
         Route::post('/', [PesananBoronganController::class, 'store'])->name('store');
         Route::get('/{borongan}', [PesananBoronganController::class, 'show'])->name('show');
         Route::patch('/{borongan}/status', [PesananBoronganController::class, 'updateStatus'])->name('status');
+        Route::patch('/{borongan}/payment', [PesananBoronganController::class, 'updatePaymentStatus'])->name('payment');
         Route::get('/{borongan}/pdf', [PesananBoronganController::class, 'pdf'])->name('pdf');
     });
 

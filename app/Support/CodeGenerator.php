@@ -26,4 +26,3 @@ class CodeGenerator
         return sprintf('%s-%0'.$padLength.'d', $prefix, $nextNumber);
     }
 }
-

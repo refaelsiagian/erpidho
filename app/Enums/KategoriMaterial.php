@@ -9,4 +9,3 @@ enum KategoriMaterial: string
     case Rangka = 'Rangka';
     case Aksesoris = 'Aksesoris';
 }
-

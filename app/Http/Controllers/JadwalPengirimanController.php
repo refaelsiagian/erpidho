@@ -39,6 +39,7 @@ class JadwalPengirimanController extends Controller
     {
         $transaksis = TransaksiPenjualan::query()
             ->with('pelanggan')
+            ->where('perlu_pengiriman', true)
             ->whereDoesntHave('jadwalPengiriman')
             ->latest('tanggal')
             ->get();
@@ -63,22 +64,36 @@ class JadwalPengirimanController extends Controller
             'jenis_referensi' => ['required', Rule::in(['penjualan', 'borongan'])],
             'referensi_id' => ['required', 'integer', 'min:1'],
             'alamat_pengiriman' => ['required', 'string', 'max:150'],
-            'tanggal_kirim' => ['required', 'date'],
+            'tanggal_kirim' => ['required', 'date', 'after_or_equal:today'],
             'jam_kirim' => ['required', 'date_format:H:i'],
-            'biaya_pengiriman' => ['required', 'integer', 'min:0'],
             'confirm_buffer_warning' => ['nullable', 'boolean'],
+        ], [
+            'tanggal_kirim.after_or_equal' => 'Tanggal pengiriman tidak boleh di masa lalu.',
         ]);
+
+        if ($validated['tanggal_kirim'] === now()->toDateString() && $validated['jam_kirim'] < now()->format('H:i')) {
+            throw ValidationException::withMessages([
+                'jam_kirim' => 'Jam pengiriman hari ini tidak boleh lebih awal dari waktu sekarang.',
+            ]);
+        }
 
         $transaksiId = $validated['jenis_referensi'] === 'penjualan' ? (int) $validated['referensi_id'] : null;
         $boronganId = $validated['jenis_referensi'] === 'borongan' ? (int) $validated['referensi_id'] : null;
+        $biayaPengiriman = 0;
 
         if ($transaksiId !== null) {
             $transaksi = TransaksiPenjualan::findOrFail($transaksiId);
+            if (! $transaksi->perlu_pengiriman) {
+                return back()->withInput()->withErrors([
+                    'referensi_id' => "Transaksi {$transaksi->kode_transaksi} tidak memilih opsi pengiriman.",
+                ]);
+            }
             if ($transaksi->jadwalPengiriman()->exists()) {
                 return back()->withInput()->withErrors([
                     'referensi_id' => "Transaksi {$transaksi->kode_transaksi} sudah memiliki jadwal pengiriman.",
                 ]);
             }
+            $biayaPengiriman = $transaksi->biaya_pengiriman;
         }
 
         if ($boronganId !== null) {
@@ -88,6 +103,7 @@ class JadwalPengirimanController extends Controller
                     'referensi_id' => "Pesanan {$borongan->kode_borongan} sudah memiliki jadwal pengiriman.",
                 ]);
             }
+            $biayaPengiriman = $borongan->biaya_pengiriman;
         }
 
         $conflictResult = $this->checkScheduleConflict($validated['tanggal_kirim'], $validated['jam_kirim']);
@@ -104,10 +120,8 @@ class JadwalPengirimanController extends Controller
                 ->with('buffer_warning', $conflictResult['warning']);
         }
 
-        $jadwal = DB::transaction(function () use ($validated, $transaksiId, $boronganId, $conflictResult): JadwalPengiriman {
-            $biayaPengiriman = (int) $validated['biaya_pengiriman'];
-
-            $jadwal = JadwalPengiriman::create([
+        $jadwal = DB::transaction(function () use ($validated, $transaksiId, $boronganId, $biayaPengiriman, $conflictResult): JadwalPengiriman {
+            return JadwalPengiriman::create([
                 'kode_jadwal' => CodeGenerator::next(JadwalPengiriman::class, 'kode_jadwal', 'JDW', 6),
                 'transaksi_penjualan_id' => $transaksiId,
                 'pesanan_borongan_id' => $boronganId,
@@ -118,24 +132,6 @@ class JadwalPengirimanController extends Controller
                 'status_pengiriman' => StatusPengiriman::Terjadwal,
                 'catatan_bentrok' => $conflictResult['warning'],
             ]);
-
-            if ($biayaPengiriman > 0) {
-                if ($transaksiId !== null) {
-                    $transaksi = TransaksiPenjualan::lockForUpdate()->findOrFail($transaksiId);
-                    $transaksi->update([
-                        'biaya_pengiriman' => $biayaPengiriman,
-                        'total_bayar' => $transaksi->total_bayar + $biayaPengiriman,
-                    ]);
-                } elseif ($boronganId !== null) {
-                    $borongan = PesananBorongan::lockForUpdate()->findOrFail($boronganId);
-                    $borongan->update([
-                        'biaya_pengiriman' => $biayaPengiriman,
-                        'total_biaya' => $borongan->total_biaya + $biayaPengiriman,
-                    ]);
-                }
-            }
-
-            return $jadwal;
         });
 
         return redirect()
@@ -145,13 +141,33 @@ class JadwalPengirimanController extends Controller
 
     public function updateStatus(Request $request, JadwalPengiriman $pengiriman): RedirectResponse
     {
+        if ($pengiriman->status_pengiriman === StatusPengiriman::Selesai) {
+            return back()->withErrors([
+                'status_pengiriman' => "Pengiriman {$pengiriman->kode_jadwal} sudah Selesai dan terkunci.",
+            ]);
+        }
+
         $validated = $request->validate([
             'status_pengiriman' => ['required', Rule::enum(StatusPengiriman::class)],
         ]);
 
-        $pengiriman->update($validated);
+        $newStatus = StatusPengiriman::from($validated['status_pengiriman']);
 
-        return back()->with('success', "Status pengiriman {$pengiriman->kode_jadwal} diperbarui.");
+        $expectedNext = match ($pengiriman->status_pengiriman) {
+            StatusPengiriman::Terjadwal => StatusPengiriman::Dikirim,
+            StatusPengiriman::Dikirim => StatusPengiriman::Selesai,
+            StatusPengiriman::Selesai => null,
+        };
+
+        if ($newStatus !== $expectedNext) {
+            return back()->withErrors([
+                'status_pengiriman' => "Perubahan status pengiriman dari {$pengiriman->status_pengiriman->value} ke {$newStatus->value} tidak diizinkan.",
+            ]);
+        }
+
+        $pengiriman->update(['status_pengiriman' => $newStatus]);
+
+        return back()->with('success', "Status pengiriman {$pengiriman->kode_jadwal} diperbarui menjadi {$newStatus->value}.");
     }
 
     /**
@@ -204,4 +220,3 @@ class JadwalPengirimanController extends Controller
         return ($hours * 60) + $minutes;
     }
 }
-

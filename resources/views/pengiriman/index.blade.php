@@ -50,15 +50,47 @@
                             </td>
                             <td class="px-4 py-3 text-right font-medium">{{ \App\Support\Rupiah::format($j->biaya_pengiriman) }}</td>
                             <td class="px-4 py-3">
-                                <form method="POST" action="{{ route('pengiriman.status', $j) }}" class="flex items-center gap-2">
-                                    @csrf
-                                    @method('PATCH')
-                                    <select name="status_pengiriman" onchange="this.form.submit()" class="rounded-lg border border-slate-300 px-2.5 py-1 text-xs bg-white">
-                                        @foreach ($statuses as $st)
-                                            <option value="{{ $st->value }}" @selected($j->status_pengiriman === $st)>{{ $st->value }}</option>
-                                        @endforeach
-                                    </select>
-                                </form>
+                                @if ($j->status_pengiriman === \App\Enums\StatusPengiriman::Terjadwal)
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <x-badge color="amber">Terjadwal</x-badge>
+                                        <form
+                                            method="POST"
+                                            action="{{ route('pengiriman.status', $j) }}"
+                                            data-confirm="Mulai pengiriman {{ $j->kode_jadwal }} sekarang?"
+                                            data-confirm-title="Mulai Pengiriman"
+                                            data-confirm-button="Ya, Mulai Kirim"
+                                            data-confirm-variant="primary"
+                                        >
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="status_pengiriman" value="{{ \App\Enums\StatusPengiriman::Dikirim->value }}">
+                                            <button type="submit" class="rounded-lg bg-sky-600 hover:bg-sky-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer">
+                                                Mulai Kirim
+                                            </button>
+                                        </form>
+                                    </div>
+                                @elseif ($j->status_pengiriman === \App\Enums\StatusPengiriman::Dikirim)
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <x-badge color="sky">Dalam Pengiriman</x-badge>
+                                        <form
+                                            method="POST"
+                                            action="{{ route('pengiriman.status', $j) }}"
+                                            data-confirm="Konfirmasi pengiriman {{ $j->kode_jadwal }} sudah selesai? Status akan terkunci."
+                                            data-confirm-title="Selesaikan Pengiriman"
+                                            data-confirm-button="Ya, Tandai Selesai"
+                                            data-confirm-variant="success"
+                                        >
+                                            @csrf
+                                            @method('PATCH')
+                                            <input type="hidden" name="status_pengiriman" value="{{ \App\Enums\StatusPengiriman::Selesai->value }}">
+                                            <button type="submit" class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer">
+                                                Tandai Selesai
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <x-badge color="emerald">Selesai (Terkunci)</x-badge>
+                                @endif
                             </td>
                         </tr>
                     @empty

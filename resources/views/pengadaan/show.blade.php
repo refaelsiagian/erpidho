@@ -3,7 +3,14 @@
         <a href="{{ route('pengadaan.index') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">← Kembali ke Daftar Pengadaan</a>
         <div class="flex items-center gap-2">
             @if ($pengadaan->status_penerimaan === \App\Enums\StatusPenerimaan::Dipesan)
-                <form method="POST" action="{{ route('pengadaan.receive', $pengadaan) }}" onsubmit="return confirm('Konfirmasi seluruh material telah diterima dan tambahkan ke stok?')">
+                <form
+                    method="POST"
+                    action="{{ route('pengadaan.receive', $pengadaan) }}"
+                    data-confirm="Konfirmasi seluruh material telah diterima dan tambahkan ke stok?"
+                    data-confirm-title="Konfirmasi Penerimaan Barang"
+                    data-confirm-button="Ya, Terima Barang"
+                    data-confirm-variant="success"
+                >
                     @csrf
                     <button type="submit" class="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-sm font-semibold cursor-pointer">
                         Konfirmasi Barang Diterima (+ Stok)

@@ -206,6 +206,7 @@ class DatabaseSeeder extends Seeder
             'total_bayar' => (5 * 78000) + (10 * 33000),
             'metode_bayar' => MetodeBayar::Tunai,
             'status_pembayaran' => StatusPembayaran::Lunas,
+            'tanggal_lunas' => now()->toDateString(),
         ]);
 
         DetailPenjualan::create([
@@ -235,6 +236,9 @@ class DatabaseSeeder extends Seeder
             'biaya_jasa' => 1800000,
             'biaya_pengiriman' => 50000,
             'total_biaya' => (20 * 65000) + (25 * 25000) + 1800000 + 50000,
+            'metode_bayar' => MetodeBayar::Transfer,
+            'status_pembayaran' => StatusPembayaran::Lunas,
+            'tanggal_lunas' => now()->subDay()->toDateString(),
             'status_proyek' => StatusProyek::Selesai,
         ]);
 
@@ -259,6 +263,7 @@ class DatabaseSeeder extends Seeder
             'karyawan_tukang_id' => $tukangs[0]->id,
             'pesanan_borongan_id' => $boronganSelesai->id,
             'tanggal_diproses' => now()->subDay()->toDateString(),
+            'tanggal_dibayar' => now()->subDay()->toDateString(),
             'total_gaji' => 850000,
             'status_bayar' => StatusBayarGaji::Dibayar,
             'catatan' => 'Pemasangan rapi, termasuk lembur 1 hari.',
@@ -285,6 +290,9 @@ class DatabaseSeeder extends Seeder
             'biaya_jasa' => 1200000,
             'biaya_pengiriman' => 75000,
             'total_biaya' => (15 * 78000) + 1200000 + 75000,
+            'metode_bayar' => MetodeBayar::Tunai,
+            'status_pembayaran' => StatusPembayaran::BelumLunas,
+            'tanggal_lunas' => null,
             'status_proyek' => StatusProyek::Berjalan,
         ]);
 

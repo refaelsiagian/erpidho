@@ -13,7 +13,10 @@
         x-data="{
             materials: @js($materialsJson),
             modePelanggan: '{{ old('nama_pelanggan_baru') ? 'baru' : 'pilih' }}',
-            items: [{ material_id: '', jumlah: 1 }],
+            statusPembayaran: '{{ old('status_pembayaran', 'Lunas') }}',
+            perluPengiriman: {{ old('perlu_pengiriman') ? 'true' : 'false' }},
+            biayaPengiriman: {{ (int) old('biaya_pengiriman', 0) }},
+            items: @js(array_values(old('items', [['material_id' => '', 'jumlah' => 1]]))),
             addItem() { this.items.push({ material_id: '', jumlah: 1 }); },
             removeItem(i) { if (this.items.length > 1) this.items.splice(i, 1); },
             getMaterial(id) { return this.materials.find(m => m.id == id); },
@@ -21,8 +24,14 @@
                 const mat = this.getMaterial(item.material_id);
                 return mat ? mat.harga * (parseInt(item.jumlah) || 0) : 0;
             },
-            grandTotal() {
+            materialTotal() {
                 return this.items.reduce((sum, item) => sum + this.lineSubtotal(item), 0);
+            },
+            shippingTotal() {
+                return this.perluPengiriman ? (parseInt(this.biayaPengiriman) || 0) : 0;
+            },
+            grandTotal() {
+                return this.materialTotal() + this.shippingTotal();
             },
             rupiah(val) {
                 return 'Rp ' + new Intl.NumberFormat('id-ID').format(val || 0);
@@ -70,7 +79,7 @@
                                 <select :name="`items[${index}][material_id]`" x-model="item.material_id" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm">
                                     <option value="">-- Pilih Material --</option>
                                     <template x-for="mat in materials" :key="mat.id">
-                                        <option :value="mat.id" x-text="mat.label"></option>
+                                        <option :value="mat.id" :selected="mat.id == item.material_id" x-text="mat.label"></option>
                                     </template>
                                 </select>
                             </div>
@@ -86,7 +95,21 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                <label class="inline-flex items-center gap-2.5 text-sm font-semibold text-slate-800 cursor-pointer">
+                    <input type="checkbox" name="perlu_pengiriman" value="1" x-model="perluPengiriman" class="rounded border-slate-300 text-amber-500">
+                    <span>Perlu Pengiriman ke Lokasi Pelanggan?</span>
+                </label>
+                <div x-show="perluPengiriman" x-cloak class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Biaya Pengiriman (Rp)</label>
+                        <input type="number" name="biaya_pengiriman" x-model="biayaPengiriman" min="0" :disabled="!perluPengiriman" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm">
+                    </div>
+                    <p class="text-xs text-slate-500 self-end pb-2">Biaya langsung masuk total transaksi. Penjadwalan waktu antar dilakukan di menu Jadwal Pengiriman.</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Metode Pembayaran</label>
                     <select name="metode_bayar" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
@@ -97,17 +120,21 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Status Pembayaran</label>
-                    <select name="status_pembayaran" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
+                    <select name="status_pembayaran" x-model="statusPembayaran" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
                         @foreach ($statusPembayarans as $s)
-                            <option value="{{ $s->value }}" @selected(old('status_pembayaran', 'Lunas') === $s->value)>{{ $s->value }}</option>
+                            <option value="{{ $s->value }}">{{ $s->value }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div x-show="statusPembayaran === 'Lunas'" x-cloak>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Lunas</label>
+                    <input type="date" name="tanggal_lunas" value="{{ old('tanggal_lunas', now()->toDateString()) }}" max="{{ now()->toDateString() }}" :disabled="statusPembayaran !== 'Lunas'" class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
                 </div>
             </div>
 
             <div class="rounded-2xl bg-slate-900 text-white p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <p class="text-xs text-slate-400 uppercase tracking-wider">Estimasi Total Bayar</p>
+                    <p class="text-xs text-slate-400">Material: <span x-text="rupiah(materialTotal())"></span> + Pengiriman: <span x-text="rupiah(shippingTotal())"></span></p>
                     <p class="text-2xl font-bold text-amber-400" x-text="rupiah(grandTotal())"></p>
                 </div>
                 <div class="flex items-center gap-3">
@@ -118,4 +145,3 @@
         </form>
     </div>
 </x-app-layout>
-

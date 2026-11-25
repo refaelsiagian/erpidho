@@ -24,10 +24,20 @@ class TransaksiPenjualanFactory extends Factory
             'pelanggan_id' => Pelanggan::factory(),
             'user_id' => User::factory(),
             'tanggal' => now(),
+            'perlu_pengiriman' => false,
             'biaya_pengiriman' => 0,
             'total_bayar' => fake()->numberBetween(100, 1500) * 1000,
             'metode_bayar' => MetodeBayar::Tunai,
             'status_pembayaran' => StatusPembayaran::Lunas,
+            'tanggal_lunas' => now()->toDateString(),
         ];
+    }
+
+    public function belumLunas(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status_pembayaran' => StatusPembayaran::BelumLunas,
+            'tanggal_lunas' => null,
+        ]);
     }
 }

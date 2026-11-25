@@ -64,7 +64,15 @@
                             @if (auth()->user()->isPemilik())
                                 <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                     <a href="{{ route('materials.edit', $item) }}" class="text-amber-600 hover:text-amber-700 font-medium">Ubah</a>
-                                    <form method="POST" action="{{ route('materials.destroy', $item) }}" class="inline" onsubmit="return confirm('Hapus material ini?')">
+                                    <form
+                                        method="POST"
+                                        action="{{ route('materials.destroy', $item) }}"
+                                        class="inline"
+                                        data-confirm="Hapus material {{ $item->nama_barang }}?"
+                                        data-confirm-title="Hapus Material"
+                                        data-confirm-button="Ya, Hapus"
+                                        data-confirm-variant="danger"
+                                    >
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="text-rose-600 hover:text-rose-700 font-medium cursor-pointer">Hapus</button>

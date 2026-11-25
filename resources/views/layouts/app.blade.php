@@ -7,7 +7,45 @@
     <title>{{ $title ?? 'Dashboard' }} — ERPIDHO</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen bg-slate-50 text-slate-900 antialiased" x-data="{ sidebarOpen: false }">
+<body
+    class="min-h-screen bg-slate-50 text-slate-900 antialiased"
+    x-data="{
+        sidebarOpen: false,
+        confirmModal: {
+            open: false,
+            title: '',
+            message: '',
+            confirmText: 'Ya, Lanjutkan',
+            variant: 'primary',
+            form: null,
+        },
+        openConfirm(detail) {
+            this.confirmModal = {
+                open: true,
+                title: detail.title || 'Konfirmasi Tindakan',
+                message: detail.message || '',
+                confirmText: detail.confirmText || 'Ya, Lanjutkan',
+                variant: detail.variant || 'primary',
+                form: detail.form || null,
+            };
+        },
+        closeConfirm() {
+            this.confirmModal.open = false;
+            this.confirmModal.form = null;
+        },
+        proceedConfirm() {
+            const targetForm = this.confirmModal.form;
+            this.confirmModal.open = false;
+            this.confirmModal.form = null;
+            if (targetForm) {
+                targetForm.dataset.confirmed = '1';
+                targetForm.requestSubmit();
+            }
+        }
+    }"
+    @erphido-confirm.window="openConfirm($event.detail)"
+    @keydown.escape.window="if (confirmModal.open) closeConfirm()"
+>
     <div class="min-h-screen flex">
         {{-- Mobile backdrop --}}
         <div
@@ -185,6 +223,65 @@
 
                 {{ $slot }}
             </main>
+        </div>
+    </div>
+
+    {{-- Global Confirmation Modal --}}
+    <div
+        x-show="confirmModal.open"
+        x-cloak
+        x-transition.opacity
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+    >
+        <div
+            @click.outside="closeConfirm()"
+            x-transition.scale.95
+            class="w-full max-w-md rounded-2xl bg-white border border-slate-200 shadow-xl p-6 space-y-4"
+        >
+            <div class="flex items-start gap-3">
+                <div
+                    class="h-10 w-10 rounded-xl flex items-center justify-center shrink-0"
+                    :class="{
+                        'bg-rose-100 text-rose-600': confirmModal.variant === 'danger',
+                        'bg-emerald-100 text-emerald-600': confirmModal.variant === 'success',
+                        'bg-amber-100 text-amber-600': confirmModal.variant === 'warning',
+                        'bg-slate-100 text-slate-700': confirmModal.variant === 'primary',
+                    }"
+                >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M5.07 19h13.86c1.54 0 2.5-1.67 1.73-3L13.73 4c-.77-1.33-2.69-1.33-3.46 0L3.34 16c-.77 1.33.19 3 1.73 3z"/>
+                    </svg>
+                </div>
+                <div class="space-y-1">
+                    <h3 id="confirm-modal-title" class="text-base font-bold text-slate-900" x-text="confirmModal.title"></h3>
+                    <p class="text-sm text-slate-600 leading-relaxed" x-text="confirmModal.message"></p>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                    type="button"
+                    @click="closeConfirm()"
+                    class="rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 px-4 py-2 text-sm font-medium cursor-pointer"
+                >
+                    Batal
+                </button>
+                <button
+                    type="button"
+                    @click="proceedConfirm()"
+                    class="rounded-xl px-4 py-2 text-sm font-semibold cursor-pointer transition"
+                    :class="{
+                        'bg-rose-600 hover:bg-rose-700 text-white': confirmModal.variant === 'danger',
+                        'bg-emerald-600 hover:bg-emerald-700 text-white': confirmModal.variant === 'success',
+                        'bg-amber-500 hover:bg-amber-600 text-slate-950': confirmModal.variant === 'warning',
+                        'bg-slate-900 hover:bg-slate-800 text-white': confirmModal.variant === 'primary',
+                    }"
+                    x-text="confirmModal.confirmText"
+                ></button>
+            </div>
         </div>
     </div>
 </body>

@@ -21,6 +21,7 @@ class PenggajianTukang extends Model
         'karyawan_tukang_id',
         'pesanan_borongan_id',
         'tanggal_diproses',
+        'tanggal_dibayar',
         'total_gaji',
         'status_bayar',
         'catatan',
@@ -33,9 +34,15 @@ class PenggajianTukang extends Model
     {
         return [
             'tanggal_diproses' => 'date',
+            'tanggal_dibayar' => 'date',
             'total_gaji' => 'integer',
             'status_bayar' => StatusBayarGaji::class,
         ];
+    }
+
+    public function isDibayar(): bool
+    {
+        return $this->status_bayar === StatusBayarGaji::Dibayar;
     }
 
     public function karyawanTukang(): BelongsTo

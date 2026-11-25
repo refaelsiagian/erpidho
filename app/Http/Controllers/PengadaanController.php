@@ -56,13 +56,15 @@ class PengadaanController extends Controller
     {
         $validated = $request->validate([
             'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
-            'tanggal_pesan' => ['required', 'date'],
+            'tanggal_pesan' => ['required', 'date', 'before_or_equal:today'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.material_id' => ['required', 'integer', 'exists:materials,id'],
+            'items.*.material_id' => ['required', 'integer', 'distinct', 'exists:materials,id'],
             'items.*.jumlah_pesan' => ['required', 'integer', 'min:1'],
             'items.*.harga_beli_satuan' => ['required', 'integer', 'min:0'],
         ], [
+            'tanggal_pesan.before_or_equal' => 'Tanggal pesan tidak boleh melebihi hari ini.',
             'items.required' => 'Pilih minimal satu material untuk dipesan ke supplier.',
+            'items.*.material_id.distinct' => 'Material tidak boleh dipilih ganda dalam satu pesanan pengadaan.',
         ]);
 
         $pengadaan = DB::transaction(function () use ($validated, $request): Pengadaan {

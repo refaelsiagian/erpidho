@@ -8,6 +8,12 @@
                     <option value="{{ $st->value }}" @selected($selectedStatus === $st->value)>{{ $st->value }}</option>
                 @endforeach
             </select>
+            <select name="status_bayar" class="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm focus:border-amber-500 outline-none">
+                <option value="">Semua Pembayaran</option>
+                @foreach ($paymentStatuses as $ps)
+                    <option value="{{ $ps->value }}" @selected($selectedPaymentStatus === $ps->value)>{{ $ps->value }}</option>
+                @endforeach
+            </select>
             <button type="submit" class="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-medium cursor-pointer">Filter</button>
         </form>
         <a href="{{ route('borongan.create') }}" class="inline-flex items-center justify-center rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold px-4 py-2 text-sm">+ Pesanan Borongan</a>
@@ -21,7 +27,8 @@
                         <th class="px-4 py-3">Kode BRN</th>
                         <th class="px-4 py-3">Pelanggan &amp; Lokasi</th>
                         <th class="px-4 py-3">Jadwal Proyek</th>
-                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Proyek</th>
+                        <th class="px-4 py-3">Pembayaran</th>
                         <th class="px-4 py-3 text-right">Total Biaya</th>
                         <th class="px-4 py-3 text-right">Aksi</th>
                     </tr>
@@ -45,6 +52,9 @@
                                 })
                                 <x-badge :color="$color">{{ $b->status_proyek->value }}</x-badge>
                             </td>
+                            <td class="px-4 py-3">
+                                <x-badge :color="$b->isLunas() ? 'emerald' : 'amber'">{{ $b->status_pembayaran->value }}</x-badge>
+                            </td>
                             <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ \App\Support\Rupiah::format($b->total_biaya) }}</td>
                             <td class="px-4 py-3 text-right whitespace-nowrap space-x-2">
                                 <a href="{{ route('borongan.show', $b) }}" class="text-amber-600 hover:text-amber-700 font-medium">Detail</a>
@@ -52,7 +62,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="6" class="px-4 py-8 text-center text-slate-500">Belum ada pesanan borongan.</td></tr>
+                        <tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada pesanan borongan.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -62,4 +72,3 @@
         @endif
     </div>
 </x-app-layout>
-

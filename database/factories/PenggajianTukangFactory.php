@@ -23,9 +23,18 @@ class PenggajianTukangFactory extends Factory
             'karyawan_tukang_id' => KaryawanTukang::factory(),
             'pesanan_borongan_id' => PesananBorongan::factory()->selesai(),
             'tanggal_diproses' => now()->toDateString(),
+            'tanggal_dibayar' => null,
             'total_gaji' => fake()->numberBetween(300, 1200) * 1000,
             'status_bayar' => StatusBayarGaji::BelumDibayar,
             'catatan' => null,
         ];
+    }
+
+    public function dibayar(?string $tanggalDibayar = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status_bayar' => StatusBayarGaji::Dibayar,
+            'tanggal_dibayar' => $tanggalDibayar ?? now()->toDateString(),
+        ]);
     }
 }

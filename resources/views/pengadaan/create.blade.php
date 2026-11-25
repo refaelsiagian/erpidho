@@ -19,7 +19,7 @@
         class="max-w-4xl bg-white rounded-2xl border border-slate-200 p-6 shadow-xs"
         x-data="{
             materials: @js($materialsJson),
-            items: @js($initialItems),
+            items: @js(array_values(old('items') ?: $initialItems)),
             addItem() { this.items.push({ material_id: '', jumlah_pesan: 10, harga_beli_satuan: 0 }); },
             removeItem(i) { if (this.items.length > 1) this.items.splice(i, 1); },
             syncHarga(item) {
@@ -52,7 +52,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-700 mb-1">Tanggal Pesan</label>
-                    <input type="date" name="tanggal_pesan" value="{{ old('tanggal_pesan', now()->toDateString()) }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
+                    <input type="date" name="tanggal_pesan" value="{{ old('tanggal_pesan', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-slate-300 px-3.5 py-2.5 text-sm">
                 </div>
             </div>
 

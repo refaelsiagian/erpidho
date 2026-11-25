@@ -14,6 +14,9 @@
                 <strong>Pelanggan:</strong> {{ $transaksi->pelanggan?->nama_pelanggan ?? 'Pelanggan Umum' }}<br>
                 <strong>Metode Bayar:</strong> {{ $transaksi->metode_bayar->value }}<br>
                 <strong>Status:</strong> {{ $transaksi->status_pembayaran->value }}
+                @if ($transaksi->tanggal_lunas)
+                    ({{ $transaksi->tanggal_lunas->format('d M Y') }})
+                @endif
             </td>
         </tr>
     </table>

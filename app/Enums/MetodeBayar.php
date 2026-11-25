@@ -8,4 +8,3 @@ enum MetodeBayar: string
     case Transfer = 'Transfer';
     case Qris = 'QRIS';
 }
-

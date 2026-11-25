@@ -8,4 +8,3 @@ enum StatusProyek: string
     case Berjalan = 'Berjalan';
     case Selesai = 'Selesai';
 }
-

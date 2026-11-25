@@ -12,11 +12,14 @@
     {{-- Summary cards --}}
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Omzet Hari Ini</p>
+            <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Pemasukan Lunas Hari Ini</p>
             <p class="mt-2 text-2xl font-bold text-slate-900">{{ \App\Support\Rupiah::format($omzetHariIni) }}</p>
             <p class="mt-1 text-xs text-slate-500">
                 Langsung: {{ \App\Support\Rupiah::format($penjualanHariIni) }} | Borongan: {{ \App\Support\Rupiah::format($boronganHariIni) }}
             </p>
+            @if ($piutangBelumLunas > 0)
+                <p class="mt-1 text-[11px] font-medium text-amber-700">Piutang Belum Lunas: {{ \App\Support\Rupiah::format($piutangBelumLunas) }}</p>
+            @endif
         </div>
 
         <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">

@@ -116,4 +116,3 @@ class MaterialController extends Controller
         ]);
     }
 }
-

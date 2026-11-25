@@ -24,7 +24,10 @@
                     \App\Enums\StatusProyek::Berjalan => 'sky',
                     default => 'amber',
                 })
-                <x-badge :color="$color">{{ $borongan->status_proyek->value }}</x-badge>
+                <div class="flex flex-wrap gap-1.5">
+                    <x-badge :color="$color">{{ $borongan->status_proyek->value }}</x-badge>
+                    <x-badge :color="$borongan->isLunas() ? 'emerald' : 'amber'">{{ $borongan->status_pembayaran->value }} ({{ $borongan->metode_bayar->value }})</x-badge>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
@@ -81,20 +84,95 @@
 
         <div class="space-y-4">
             <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-                <h3 class="font-bold text-slate-900 text-sm">Ubah Status Proyek</h3>
-                <form method="POST" action="{{ route('borongan.status', $borongan) }}" class="space-y-3">
-                    @csrf
-                    @method('PATCH')
-                    <select name="status_proyek" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                        @foreach ($statuses as $st)
-                            @if ($st === \App\Enums\StatusProyek::Selesai && ! auth()->user()->isPemilik())
-                                @continue
+                <h3 class="font-bold text-slate-900 text-sm">Status Pembayaran</h3>
+                @if (! $borongan->isLunas())
+                    <form
+                        method="POST"
+                        action="{{ route('borongan.payment', $borongan) }}"
+                        class="space-y-2.5"
+                        data-confirm="Tandai borongan {{ $borongan->kode_borongan }} sebagai Lunas? Nilai proyek akan masuk pemasukan keuangan."
+                        data-confirm-title="Konfirmasi Pelunasan"
+                        data-confirm-button="Ya, Tandai Lunas"
+                        data-confirm-variant="success"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status_pembayaran" value="{{ \App\Enums\StatusPembayaran::Lunas->value }}">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tanggal Lunas</label>
+                            <input type="date" name="tanggal_lunas" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <button type="submit" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-sm font-semibold cursor-pointer">
+                            Tandai Lunas
+                        </button>
+                    </form>
+                @elseif (auth()->user()->isPemilik())
+                    <x-badge color="emerald">Lunas ({{ $borongan->metode_bayar->value }})</x-badge>
+                    @if ($borongan->tanggal_lunas)
+                        <p class="text-xs text-slate-500">Tanggal Lunas: {{ $borongan->tanggal_lunas->format('d M Y') }}</p>
+                    @endif
+                    <form
+                        method="POST"
+                        action="{{ route('borongan.payment', $borongan) }}"
+                        class="pt-1"
+                        data-confirm="Kembalikan status pembayaran {{ $borongan->kode_borongan }} menjadi Belum Lunas? Tindakan ini khusus Pemilik."
+                        data-confirm-title="Kembalikan Status Pembayaran"
+                        data-confirm-button="Ya, Kembalikan"
+                        data-confirm-variant="warning"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status_pembayaran" value="{{ \App\Enums\StatusPembayaran::BelumLunas->value }}">
+                        <button type="submit" class="w-full rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 py-2 text-xs font-semibold cursor-pointer">
+                            Kembalikan ke Belum Lunas
+                        </button>
+                    </form>
+                @else
+                    <x-badge color="emerald">Lunas (Terkunci)</x-badge>
+                    @if ($borongan->tanggal_lunas)
+                        <p class="text-xs text-slate-500">Tanggal Lunas: {{ $borongan->tanggal_lunas->format('d M Y') }}</p>
+                    @endif
+                    <p class="text-xs text-slate-500">Hanya Pemilik yang dapat mengubah kembali status Lunas.</p>
+                @endif
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+                <h3 class="font-bold text-slate-900 text-sm">Status Proyek</h3>
+                @if ($borongan->status_proyek === \App\Enums\StatusProyek::Selesai)
+                    <x-badge color="emerald">Selesai (Terkunci)</x-badge>
+                    <p class="text-xs text-slate-500">Proyek yang sudah diverifikasi Selesai tidak dapat dikembalikan ke status sebelumnya.</p>
+                @elseif ($borongan->status_proyek === \App\Enums\StatusProyek::Berjalan && ! auth()->user()->isPemilik())
+                    <x-badge color="sky">Sedang Berjalan</x-badge>
+                    <p class="text-xs text-slate-500">Menunggu verifikasi Selesai oleh Pemilik (atau melalui menu Penggajian Tukang).</p>
+                @else
+                    @php($defaultNextStatus = $borongan->status_proyek === \App\Enums\StatusProyek::Menunggu
+                        ? \App\Enums\StatusProyek::Berjalan->value
+                        : \App\Enums\StatusProyek::Selesai->value)
+                    <form
+                        method="POST"
+                        action="{{ route('borongan.status', $borongan) }}"
+                        class="space-y-3"
+                        x-data="{ targetStatus: '{{ $defaultNextStatus }}' }"
+                        :data-confirm="targetStatus === 'Selesai'
+                            ? 'Verifikasi proyek {{ $borongan->kode_borongan }} sebagai Selesai? Status akan terkunci permanen.'
+                            : 'Ubah status proyek {{ $borongan->kode_borongan }} menjadi Berjalan? Status tidak dapat dikembalikan ke Menunggu.'"
+                        :data-confirm-title="targetStatus === 'Selesai' ? 'Verifikasi Proyek Selesai' : 'Mulai Pengerjaan Proyek'"
+                        :data-confirm-button="targetStatus === 'Selesai' ? 'Ya, Tandai Selesai' : 'Ya, Ubah ke Berjalan'"
+                        :data-confirm-variant="targetStatus === 'Selesai' ? 'success' : 'primary'"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        <select name="status_proyek" x-model="targetStatus" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                            @if ($borongan->status_proyek === \App\Enums\StatusProyek::Menunggu)
+                                <option value="{{ \App\Enums\StatusProyek::Berjalan->value }}">Berjalan</option>
                             @endif
-                            <option value="{{ $st->value }}" @selected($borongan->status_proyek === $st)>{{ $st->value }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-2 text-sm font-semibold cursor-pointer">Perbarui Status</button>
-                </form>
+                            @if (auth()->user()->isPemilik())
+                                <option value="{{ \App\Enums\StatusProyek::Selesai->value }}">Selesai (Verifikasi)</option>
+                            @endif
+                        </select>
+                        <button type="submit" class="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-2 text-sm font-semibold cursor-pointer">Perbarui Status</button>
+                    </form>
+                @endif
                 @if (auth()->user()->isPemilik())
                     <a href="{{ route('penggajian.index') }}" class="block text-center text-xs font-semibold text-amber-600 hover:underline pt-1">
                         Verifikasi &amp; Proses Gaji Tukang →

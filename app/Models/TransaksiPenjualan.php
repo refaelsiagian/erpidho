@@ -24,10 +24,12 @@ class TransaksiPenjualan extends Model
         'pelanggan_id',
         'user_id',
         'tanggal',
+        'perlu_pengiriman',
         'biaya_pengiriman',
         'total_bayar',
         'metode_bayar',
         'status_pembayaran',
+        'tanggal_lunas',
     ];
 
     /**
@@ -37,11 +39,18 @@ class TransaksiPenjualan extends Model
     {
         return [
             'tanggal' => 'datetime',
+            'perlu_pengiriman' => 'boolean',
             'biaya_pengiriman' => 'integer',
             'total_bayar' => 'integer',
             'metode_bayar' => MetodeBayar::class,
             'status_pembayaran' => StatusPembayaran::class,
+            'tanggal_lunas' => 'date',
         ];
+    }
+
+    public function isLunas(): bool
+    {
+        return $this->status_pembayaran === StatusPembayaran::Lunas;
     }
 
     public function pelanggan(): BelongsTo

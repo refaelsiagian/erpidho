@@ -8,6 +8,9 @@
             <td style="width: 55%;">
                 <strong>No. Slip Gaji:</strong> {{ $gaji->kode_gaji }}<br>
                 <strong>Tanggal Diproses:</strong> {{ $gaji->tanggal_diproses->format('d M Y') }}<br>
+                @if ($gaji->tanggal_dibayar)
+                    <strong>Tanggal Dibayar:</strong> {{ $gaji->tanggal_dibayar->format('d M Y') }}<br>
+                @endif
                 <strong>Status Pembayaran:</strong> {{ $gaji->status_bayar->value }}
             </td>
             <td style="width: 45%;">

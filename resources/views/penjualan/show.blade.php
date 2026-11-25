@@ -2,7 +2,7 @@
     <div class="flex flex-wrap items-center justify-between gap-3">
         <a href="{{ route('penjualan.index') }}" class="text-sm font-medium text-slate-600 hover:text-slate-900">← Kembali ke Daftar Penjualan</a>
         <div class="flex flex-wrap items-center gap-2">
-            @if (! $transaksi->jadwalPengiriman)
+            @if ($transaksi->perlu_pengiriman && ! $transaksi->jadwalPengiriman)
                 <a href="{{ route('pengiriman.create', ['jenis' => 'penjualan', 'id' => $transaksi->id]) }}" class="rounded-xl bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 text-sm font-semibold">+ Jadwalkan Pengiriman</a>
             @endif
             <a href="{{ route('penjualan.pdf', $transaksi) }}" class="rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-2 text-sm font-semibold">Unduh Nota PDF</a>
@@ -68,17 +68,56 @@
 
         <div class="space-y-4">
             <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-                <h3 class="font-bold text-slate-900 text-sm">Perbarui Status Pembayaran</h3>
-                <form method="POST" action="{{ route('penjualan.status', $transaksi) }}" class="space-y-3">
-                    @csrf
-                    @method('PATCH')
-                    <select name="status_pembayaran" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
-                        @foreach (\App\Enums\StatusPembayaran::cases() as $st)
-                            <option value="{{ $st->value }}" @selected($transaksi->status_pembayaran === $st)>{{ $st->value }}</option>
-                        @endforeach
-                    </select>
-                    <button type="submit" class="w-full rounded-xl bg-slate-900 hover:bg-slate-800 text-white py-2 text-sm font-semibold cursor-pointer">Simpan Status</button>
-                </form>
+                <h3 class="font-bold text-slate-900 text-sm">Status Pembayaran</h3>
+                @if ($transaksi->status_pembayaran === \App\Enums\StatusPembayaran::BelumLunas)
+                    <form
+                        method="POST"
+                        action="{{ route('penjualan.status', $transaksi) }}"
+                        class="space-y-2.5"
+                        data-confirm="Tandai transaksi {{ $transaksi->kode_transaksi }} sebagai Lunas?"
+                        data-confirm-title="Konfirmasi Pelunasan"
+                        data-confirm-button="Ya, Tandai Lunas"
+                        data-confirm-variant="success"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status_pembayaran" value="{{ \App\Enums\StatusPembayaran::Lunas->value }}">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">Tanggal Lunas</label>
+                            <input type="date" name="tanggal_lunas" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                        </div>
+                        <button type="submit" class="w-full rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white py-2 text-sm font-semibold cursor-pointer">
+                            Tandai Lunas
+                        </button>
+                    </form>
+                @elseif (auth()->user()->isPemilik())
+                    <x-badge color="emerald">Lunas</x-badge>
+                    @if ($transaksi->tanggal_lunas)
+                        <p class="text-xs text-slate-500">Tanggal Lunas: {{ $transaksi->tanggal_lunas->format('d M Y') }}</p>
+                    @endif
+                    <form
+                        method="POST"
+                        action="{{ route('penjualan.status', $transaksi) }}"
+                        class="pt-1"
+                        data-confirm="Kembalikan status transaksi {{ $transaksi->kode_transaksi }} menjadi Belum Lunas? Tindakan ini khusus Pemilik."
+                        data-confirm-title="Kembalikan Status Pembayaran"
+                        data-confirm-button="Ya, Kembalikan"
+                        data-confirm-variant="warning"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        <input type="hidden" name="status_pembayaran" value="{{ \App\Enums\StatusPembayaran::BelumLunas->value }}">
+                        <button type="submit" class="w-full rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 py-2 text-xs font-semibold cursor-pointer">
+                            Kembalikan ke Belum Lunas
+                        </button>
+                    </form>
+                @else
+                    <x-badge color="emerald">Lunas (Terkunci)</x-badge>
+                    @if ($transaksi->tanggal_lunas)
+                        <p class="text-xs text-slate-500">Tanggal Lunas: {{ $transaksi->tanggal_lunas->format('d M Y') }}</p>
+                    @endif
+                    <p class="text-xs text-slate-500">Hanya Pemilik yang dapat mengubah kembali status Lunas.</p>
+                @endif
             </div>
 
             @if ($transaksi->jadwalPengiriman)

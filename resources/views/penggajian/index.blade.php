@@ -12,9 +12,9 @@
             class="lg:col-span-1 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4 self-start"
             x-data="{
                 tukangs: @js($tukangsJson),
-                assignments: [{ karyawan_tukang_id: '', total_gaji: 0, status_bayar: 'Belum Dibayar', catatan: '' }],
+                assignments: @js(array_values(old('assignments', [['karyawan_tukang_id' => '', 'total_gaji' => 0, 'status_bayar' => 'Belum Dibayar', 'tanggal_dibayar' => now()->toDateString(), 'catatan' => '']]))),
                 addRow() {
-                    this.assignments.push({ karyawan_tukang_id: '', total_gaji: 0, status_bayar: 'Belum Dibayar', catatan: '' });
+                    this.assignments.push({ karyawan_tukang_id: '', total_gaji: 0, status_bayar: 'Belum Dibayar', tanggal_dibayar: '{{ now()->toDateString() }}', catatan: '' });
                 },
                 removeRow(i) {
                     if (this.assignments.length > 1) this.assignments.splice(i, 1);
@@ -43,7 +43,7 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Tanggal Diproses</label>
-                    <input type="date" name="tanggal_diproses" value="{{ old('tanggal_diproses', now()->toDateString()) }}" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
+                    <input type="date" name="tanggal_diproses" value="{{ old('tanggal_diproses', now()->toDateString()) }}" max="{{ now()->toDateString() }}" required class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm">
                 </div>
 
                 <div class="space-y-3">
@@ -62,7 +62,7 @@
                             <select :name="`assignments[${index}][karyawan_tukang_id]`" x-model="row.karyawan_tukang_id" required class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                                 <option value="">-- Pilih Karyawan Tukang --</option>
                                 <template x-for="t in tukangs" :key="t.id">
-                                    <option :value="t.id" x-text="t.label"></option>
+                                    <option :value="t.id" :selected="t.id == row.karyawan_tukang_id" x-text="t.label"></option>
                                 </template>
                             </select>
 
@@ -79,6 +79,11 @@
                                         @endforeach
                                     </select>
                                 </div>
+                            </div>
+
+                            <div x-show="row.status_bayar === 'Dibayar'" x-cloak>
+                                <label class="block text-[11px] text-slate-500 mb-0.5">Tanggal Dibayar (Status akan terkunci)</label>
+                                <input type="date" :name="`assignments[${index}][tanggal_dibayar]`" x-model="row.tanggal_dibayar" max="{{ now()->toDateString() }}" :disabled="row.status_bayar !== 'Dibayar'" class="w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm">
                             </div>
 
                             <div>
@@ -121,7 +126,7 @@
                                 <th class="px-4 py-3">Kode &amp; Proyek</th>
                                 <th class="px-4 py-3">Tukang &amp; Catatan</th>
                                 <th class="px-4 py-3 text-right">Total Gaji</th>
-                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3">Status Pembayaran</th>
                                 <th class="px-4 py-3 text-right">Slip</th>
                             </tr>
                         </thead>
@@ -131,7 +136,7 @@
                                     <td class="px-4 py-3">
                                         <p class="font-mono text-xs font-semibold text-slate-900">{{ $g->kode_gaji }}</p>
                                         <a href="{{ route('borongan.show', $g->pesananBorongan) }}" class="text-xs text-amber-600 hover:underline">{{ $g->pesananBorongan->kode_borongan }}</a>
-                                        <p class="text-[11px] text-slate-400">{{ $g->tanggal_diproses->format('d M Y') }}</p>
+                                        <p class="text-[11px] text-slate-400">Diproses: {{ $g->tanggal_diproses->format('d M Y') }}</p>
                                     </td>
                                     <td class="px-4 py-3">
                                         <p class="font-semibold text-slate-900">{{ $g->karyawanTukang->nama_tukang }}</p>
@@ -141,15 +146,28 @@
                                     </td>
                                     <td class="px-4 py-3 text-right font-semibold text-slate-900 whitespace-nowrap">{{ \App\Support\Rupiah::format($g->total_gaji) }}</td>
                                     <td class="px-4 py-3">
-                                        <form method="POST" action="{{ route('penggajian.status', $g) }}">
-                                            @csrf
-                                            @method('PATCH')
-                                            <select name="status_bayar" onchange="this.form.submit()" class="rounded-lg border border-slate-300 px-2 py-1 text-xs bg-white">
-                                                @foreach ($statuses as $st)
-                                                    <option value="{{ $st->value }}" @selected($g->status_bayar === $st)>{{ $st->value }}</option>
-                                                @endforeach
-                                            </select>
-                                        </form>
+                                        @if ($g->isDibayar())
+                                            <x-badge color="emerald">Dibayar</x-badge>
+                                            <p class="text-[11px] text-slate-500 mt-1">Tgl bayar: {{ $g->tanggal_dibayar?->format('d M Y') ?? '-' }}</p>
+                                        @else
+                                            <form
+                                                method="POST"
+                                                action="{{ route('penggajian.status', $g) }}"
+                                                class="flex flex-wrap items-center gap-2"
+                                                data-confirm="Tandai gaji {{ $g->kode_gaji }} sudah dibayar? Status akan terkunci permanen dan masuk laporan keuangan."
+                                                data-confirm-title="Konfirmasi Pembayaran Gaji"
+                                                data-confirm-button="Ya, Tandai Dibayar"
+                                                data-confirm-variant="success"
+                                            >
+                                                @csrf
+                                                @method('PATCH')
+                                                <input type="hidden" name="status_bayar" value="{{ \App\Enums\StatusBayarGaji::Dibayar->value }}">
+                                                <input type="date" name="tanggal_dibayar" value="{{ now()->toDateString() }}" max="{{ now()->toDateString() }}" class="rounded-lg border border-slate-300 px-2 py-1 text-xs bg-white">
+                                                <button type="submit" class="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1 text-xs font-semibold cursor-pointer">
+                                                    Tandai Dibayar
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                     <td class="px-4 py-3 text-right whitespace-nowrap">
                                         <a href="{{ route('penggajian.pdf', $g) }}" class="text-xs font-semibold text-slate-700 hover:text-amber-600">Slip PDF</a>
@@ -168,4 +186,3 @@
         </section>
     </div>
 </x-app-layout>
-
